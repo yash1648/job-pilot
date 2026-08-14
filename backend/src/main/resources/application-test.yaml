@@ -1,0 +1,29 @@
+# JobPilot — test profile (doc 33 §2): Testcontainers Postgres/Redis, faked AI
+spring:
+  datasource:
+    url: ${TEST_DB_URL:jdbc:tc:postgresql:16:///jobpilot?TC_IMAGE_TAG=pgvector/pgvector:pg16}
+    username: test
+    password: test
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+  data:
+    redis:
+      host: ${TEST_REDIS_HOST:localhost}
+      port: ${TEST_REDIS_PORT:6379}
+
+jobpilot:
+  ai:
+    provider: fake   # faked AiService/EmbeddingService/VisionService (doc 26 §3)
+  storage:
+    root-dir: ${java.io.tmpdir}/jobpilot-test-storage
+    encryption:
+      enabled: false
+  security:
+    jwt:
+      secret: test-secret-that-is-long-enough-for-hmac-256-bits
+      access-ttl-minutes: 15
+      refresh-ttl-days: 30

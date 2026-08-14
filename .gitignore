@@ -1,0 +1,25 @@
+# IDE
+.idea/
+*.iml
+backend/.idea/
+backend/*.iml
+
+# Build output
+backend/target/
+*.class
+
+# Local data / storage
+backend/data/
+*.log
+
+# Env / secrets
+.env
+*.env
+*.key
+*.secret
+
+# OS
+.DS_Store
+
+# CodeGraph index
+.codegraph

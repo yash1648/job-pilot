@@ -1,0 +1,39 @@
+# JobPilot — development profile (doc 33 §2): Docker Compose infra, local Ollama
+spring:
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB:jobpilot}
+    username: ${POSTGRES_USER:jobpilot}
+    password: ${POSTGRES_PASSWORD:jobpilot}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+
+jobpilot:
+  ai:
+    provider: ollama
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
+      # model profiles (doc 06 §2) — concrete model names per environment
+      models:
+        fast: ${OLLAMA_MODEL_FAST:llama3.2:3b}
+        strong: ${OLLAMA_MODEL_STRONG:llama3.1:8b}
+        embedding: ${OLLAMA_MODEL_EMBEDDING:nomic-embed-text}
+        vision: ${OLLAMA_MODEL_VISION:llava:7b}
+  storage:
+    root-dir: ${STORAGE_ROOT:./data/storage}
+    encryption:
+      enabled: true
+      key: ${STORAGE_ENC_KEY:}
+  security:
+    jwt:
+      secret: ${JWT_SECRET:dev-only-change-me-please-32-bytes-min}
+      access-ttl-minutes: 15
+      refresh-ttl-days: 30

@@ -1,0 +1,37 @@
+# JobPilot — production profile (doc 33 §2): all secrets from environment
+spring:
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_HOST}:${POSTGRES_PORT:5432}/${POSTGRES_DB}
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+  data:
+    redis:
+      host: ${REDIS_HOST}
+      port: ${REDIS_PORT:6379}
+
+jobpilot:
+  ai:
+    provider: ollama
+    ollama:
+      base-url: ${OLLAMA_BASE_URL}
+      models:
+        fast: ${OLLAMA_MODEL_FAST}
+        strong: ${OLLAMA_MODEL_STRONG}
+        embedding: ${OLLAMA_MODEL_EMBEDDING}
+        vision: ${OLLAMA_MODEL_VISION}
+  storage:
+    root-dir: /var/lib/jobpilot/storage
+    encryption:
+      enabled: true
+      key: ${STORAGE_ENC_KEY}
+  security:
+    jwt:
+      secret: ${JWT_SECRET}
+      access-ttl-minutes: 15
+      refresh-ttl-days: 30

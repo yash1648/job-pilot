@@ -1,0 +1,32 @@
+TASK-JP-0001 — Project scaffold
+================================
+Status: PASS
+
+Acceptance criteria:
+- mvn spring-boot:run starts against Compose stack ......... PASS
+  (Started JobPilotApplication in 6.94 seconds, Spring Boot 4.1.0, Java 21)
+- curl localhost:8080/actuator/health returns UP .......... PASS
+  {"groups":["liveness","readiness"],"status":"UP"}
+
+QA scenarios:
+- happy: ./mvnw spring-boot:run + curl health endpoint ..... PASS
+  Evidence: this file
+- failure: health DOWN when Postgres container stopped ...... PASS
+  (health endpoint returned non-UP/503 while jobpilot-postgres-1 was stopped;
+   readiness probe failed as designed, recovered to UP on restart)
+
+Deliverables:
+- pom.xml: Boot 4.1.0, webmvc, validation, thymeleaf, security, data-jpa,
+  postgresql, pgvector 0.1.6, flyway (+ flyway-database-postgresql), data-redis,
+  actuator, playwright 1.49.0, testcontainers 1.20.4, archunit 1.3.0
+- com.jobpilot package skeleton: 33 module packages with package-info.java
+  (doc 34 §1 exact list)
+- JobPilotApplication (com.jobpilot)
+- application.yaml + application-{dev,test,staging,prod}.yaml (doc 34 §6)
+- docker-compose.yml: postgres pgvector/pgvector:pg16, redis:7
+  (ollama service commented out — system Ollama at localhost:11434 is used)
+- ModuleBoundaryTest: ArchUnit dependency rules (doc 34 §3) — PASS
+
+Deviation note: docs assume Spring Boot 3.x; scaffold already pinned Boot 4.1.0
+(spring-boot-starter-webmvc naming). Kept 4.1.0 — newer, compiles, docs-compatible
+at API level. Flyway 10 needs explicit flyway-database-postgresql runtime dep.
