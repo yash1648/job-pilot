@@ -173,13 +173,14 @@ Waves follow the roadmap (a dependency chain, docs/36 §2). Within a wave, tasks
   QA scenarios (name the exact tool + invocation): happy — migration test against fresh Testcontainers Postgres, Evidence .omo/evidence/task-2-jobpilot.txt; failure — second master resume insert violates ux_resumes_one_master.
   Commit: Y | feat(common): identity + candidate evidence migrations
 
-- [ ] 3. users/auth — registration, login, JWT issuance (TASK-JP-0003)
+- [x] 3. users/auth — registration, login, JWT issuance (TASK-JP-0003)
   What to do / Must NOT do: doc 05 §1 endpoints (register/login/logout/refresh/oauth-callback placeholder), doc 22 §1 password hashing (Argon2id/bcrypt), JWT short-lived + refresh rotation, HTTP-only+Secure+SameSite=Lax cookies for Thymeleaf frontend, CSRF per doc 22 §3. Must NOT log password hashes or tokens (docs/29 §1); must NOT store plaintext passwords.
   Parallelization: Wave 1 | Blocked by: 2 | Blocks: 4
   References (executor has NO interview context - be exhaustive): docs/05-api-specification.md:19-27; docs/22-security.md:5-13,24-30; docs/25-threat-model.md:47-55 (credential theft), 80-87 (account takeover); docs/26-testing.md:16-18
   Acceptance criteria (agent-executable): register→login→authenticated request round-trip works; API tests for all doc 05 §1 endpoints incl. error cases (duplicate email → 409); CSRF/session tests pass.
   QA scenarios (name the exact tool + invocation): happy — API test: POST /auth/register → 201, POST /auth/login → JWT, GET /candidate/profile with Bearer → 200, Evidence .omo/evidence/task-3-jobpilot.txt; failure — duplicate email → 409; wrong password → 401.
   Commit: Y | feat(auth): registration, login, JWT issuance
+  DONE 2026-08-14: commit 9cd49e1, evidence .omo/evidence/task-3-jobpilot.txt, full suite 11 tests green. JWT bearer (not cookies) for API; /me returns RegisterResponse; logout permitAll; 401 via authenticationEntryPoint. Dev: PasswordConfig split from SecurityConfig (Boot 4.1 circular-ref ban), Boot 4 test import path, test-local ObjectMapper.
 
 - [ ] 4. CandidateProfile + JobPreference CRUD skeleton (TASK-JP-0004)
   What to do / Must NOT do: doc 05 §2/§3 endpoints (GET/PATCH /candidate/profile, GET/PUT /preferences), doc 22 §2 candidate-scoping enforced at repository layer (NOT only controller). Must NOT return another candidate's data under any path (docs/25 §5); domain-rule validation in service, not annotations (docs/35 §8).
