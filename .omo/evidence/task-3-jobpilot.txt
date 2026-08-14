@@ -1,0 +1,54 @@
+TASK-JP-0003 — Authentication (register / login / refresh / logout / me)
+=======================================================================
+Status: PASS
+
+Acceptance criteria:
+- POST /api/v1/auth/register → 201 + created user ............ PASS
+  (round-trip: register, login, /me with issued JWT)
+- duplicate email → 409 EMAIL_ALREADY_REGISTERED ............. PASS
+- login wrong password → 401 INVALID_CREDENTIALS ............. PASS
+- refresh token rotation (old refresh becomes unusable) ...... PASS
+  (issue → refresh → refresh again with the OLD token → 401)
+- logout revokes refresh token → 204, token unusable ......... PASS
+  (logout → refresh with the revoked token → 401)
+- GET /api/v1/auth/oauth/{provider}/callback placeholder ...... PASS (501)
+- unauthenticated /me → 401 UNAUTHORIZED (not 403) ........... PASS
+
+QA scenarios:
+- happy: register → login → GET /me with Bearer JWT ......... PASS
+  (AuthApiTest against Testcontainers pgvector/pgvector:pg16)
+- failure: wrong password, duplicate email, revoked refresh ... PASS
+  (each returns the doc 05 §12 error envelope with correct status)
+
+Deliverables:
+- V3__auth.sql: refresh_tokens (hashed, revocable, rotation chain via
+  replaced_by_token_id, expires_at, revoked_at) — doc 04 §2.2, doc 22 §1
+- user module: User/UserRepository/UserService + UserProfile DTO —
+  cross-module access via service only (doc 34 §3)
+- security module: PasswordConfig (BCrypt, doc 22 §1), JwtService
+  (jjwt 0.12.7, HS256), JwtAuthenticationFilter, SecurityConfig
+  (stateless, JWT bearer, CSRF exempt for /api/v1/** — doc 22 §3)
+- auth module: AuthService, RefreshTokenService, AuthController,
+  AuthDtos (register/login/refresh/logout/me/oauth placeholder)
+- common module: ApiError/ApiException/GlobalExceptionHandler
+  (doc 05 §12 error envelope)
+- AuthApiTest (6 scenarios), full suite 11 tests green
+  (AuthApiTest 6 + MigrationConstraintTest 3 + ModuleBoundaryTest 2)
+
+Deviation notes:
+- PasswordEncoder bean moved out of SecurityConfig into PasswordConfig:
+  SecurityConfig -> JwtAuthenticationFilter -> UserService -> PasswordEncoder
+  (bean in SecurityConfig) formed a circular reference, prohibited by
+  default in Boot 4.1. Separate @Configuration breaks the cycle.
+- Boot 4.1 test import: AutoConfigureMockMvc moved to
+  org.springframework.boot.webmvc.test.autoconfigure.
+- /logout is permitAll (CSRF-exempt API path): revocation is done by the
+  refresh token itself, no auth required — doc 05 §1 lists logout among
+  the /auth/** entry points.
+- unauthenticated API access returns 401 via explicit
+  authenticationEntryPoint (Spring default would be 403/redirect).
+- AuthApiTest constructs its own ObjectMapper: Boot 4 test context does
+  not expose a Jackson bean in the sliced MockMvc context.
+- user.domain.User never crosses module boundaries; UserProfile
+  (id, email, active) is the cross-module view (doc 34 §3, enforced by
+  ModuleBoundaryTest).

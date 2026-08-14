@@ -9,6 +9,14 @@ spring:
 server:
   port: 8080
 
+# JWT (doc 22 §1) — secret MUST come from env in any real environment
+jobpilot:
+  security:
+    jwt:
+      secret: ${JOBPILOT_JWT_SECRET:dev-only-secret-change-me-0123456789abcdef}
+      access-ttl-minutes: 15
+      refresh-ttl-days: 30
+
 management:
   endpoints:
     web:
