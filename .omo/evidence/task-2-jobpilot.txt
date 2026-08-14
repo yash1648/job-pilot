@@ -1,0 +1,41 @@
+TASK-JP-0002 — Database migrations
+==================================
+Status: PASS
+
+Acceptance criteria:
+- fresh DB migrates cleanly (Flyway on app boot) ............ PASS
+  (MigrationConstraintTest: 3 tests, 0 failures — Testcontainers
+   pgvector/pgvector:pg16, Flyway applied V1 + V2)
+- ux_resumes_one_master constraint .......................... PASS
+  (second is_master=true insert for same candidate → DataIntegrityViolation)
+- skill_evidence CHECK confidence 0-1 ....................... PASS
+  (confidence 1.5 and -0.1 → DataIntegrityViolation; 0.7 accepted)
+
+QA scenarios:
+- happy: migration test against fresh Testcontainers Postgres  PASS
+  Evidence: this file
+- failure: second master resume insert violates
+  ux_resumes_one_master ..................................... PASS
+  (secondMasterResumeViolatesUniquePartialIndex green)
+
+Deliverables:
+- V1__identity.sql: users (citext email, bcrypt-ready password_hash),
+  candidate_profiles, job_preferences — doc 04 §2.1, data-minimized
+  (docs/24 §2: no speculative columns)
+- V2__evidence_tables.sql: resumes (+ ux_resumes_one_master partial unique,
+  doc 04:94-95), resume_versions, skills, skill_evidence (confidence CHECK
+  0-1, doc 04:130), experiences/educations/projects/certifications/
+  achievements, candidate_embeddings (vector(1536), ivfflat index)
+- MigrationConstraintTest (JUnit 5 + Testcontainers): migration apply +
+  both constraint behaviors
+- module-dependency order: resume_versions.job_id FK deferred to jobs
+  migration (jobs table is Wave 3, doc 04 §3 additive-first)
+
+Deviation notes:
+- testcontainers.version bumped 1.20.4 → 1.21.4: docker-java 3.4.0 in 1.20.4
+  pings Docker at fixed client API 1.32; this Docker daemon (API 1.55) rejects
+  it (min 1.40). 1.21.4 bundles docker-java 3.4.1+ with negotiation.
+- V1 added CREATE EXTENSION citext (pgvector image does not enable citext
+  by default; CITEXT column would fail migration otherwise).
+- resume_versions.job_id is a bare UUID column in V2; FK added by the jobs
+  migration (additive-first, no forward references).

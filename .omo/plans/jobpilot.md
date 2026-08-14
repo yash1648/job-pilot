@@ -165,7 +165,7 @@ Waves follow the roadmap (a dependency chain, docs/36 §2). Within a wave, tasks
   QA scenarios (name the exact tool + invocation): happy — `./mvnw spring-boot:run` + `curl` health endpoint, Evidence .omo/evidence/task-1-jobpilot.txt; failure — health returns DOWN when Postgres container stopped; ArchUnit dependency-rule test passes with empty modules.
   Commit: Y | feat(common): scaffold Spring Boot project skeleton
 
-- [ ] 2. Database migrations — identity, preferences, candidate evidence tables (TASK-JP-0002)
+- [x] 2. Database migrations — identity, preferences, candidate evidence tables (TASK-JP-0002)
   What to do / Must NOT do: Flyway V1__identity.sql, V2__evidence_tables.sql per doc 04 §2.1-2.2 (users, candidate_profiles, job_preferences, resumes, resume_versions, skills, skill_evidence, experiences/educations/projects/certifications/achievements, candidate_embeddings). Must NOT add columns beyond doc 03/04 (data minimization, docs/24 §2). Additive-first migrations (docs/04 §3).
   Parallelization: Wave 1 | Blocked by: 1 | Blocks: 3, 4, 6
   References (executor has NO interview context - be exhaustive): docs/04-database-design.md:22-160; docs/03-domain-model.md:49-89; docs/26-testing.md:19-21,45-54
