@@ -23,7 +23,7 @@ public class User {
     @Id
     private UUID id;
 
-    @Column(unique = true, nullable = false)
+    @Column(unique = true, nullable = false, columnDefinition = "citext")
     private String email;
 
     @Column(name = "password_hash")
