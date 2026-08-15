@@ -10,6 +10,7 @@ backend/target/
 
 # Local data / storage
 backend/data/
+jobpilot-storage/
 *.log
 
 # Env / secrets
