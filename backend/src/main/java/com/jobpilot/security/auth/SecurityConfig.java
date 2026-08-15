@@ -15,7 +15,7 @@ import jakarta.servlet.http.HttpServletResponse;
  * Security filter chain (doc 22 §1-3):
  * - JWT bearer auth for /api/v1/**; /auth/** entry points permitAll
  * - stateless sessions (JWT, doc 22 §1)
- * - CSRF enabled for Thymeleaf-form requests, exempt for API (doc 22 §3)
+ * - CSRF disabled for the API (JWT bearer, doc 22 §3)
  * - session fixation protection on login (doc 22 §3)
  */
 @Configuration
@@ -32,8 +32,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 .csrf(csrf -> csrf
-                        // API (JWT-bearer) requests are exempt from CSRF (doc 22 §3);
-                        // non-API (Thymeleaf form) paths keep CSRF protection.
+                        // API (JWT-bearer) requests are exempt from CSRF (doc 22 §3).
                         .ignoringRequestMatchers("/api/v1/**"))
                 .sessionManagement(sm -> sm
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS)

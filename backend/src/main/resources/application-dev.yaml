@@ -21,12 +21,13 @@ jobpilot:
     provider: ollama
     ollama:
       base-url: ${OLLAMA_BASE_URL:http://localhost:11434}
-      # model profiles (doc 06 §2) — concrete model names per environment
+      # model profiles (doc 06 §2) — concrete model names per environment;
+      # defaults match the models pulled on the dev machine
       models:
-        fast: ${OLLAMA_MODEL_FAST:llama3.2:3b}
-        strong: ${OLLAMA_MODEL_STRONG:llama3.1:8b}
+        fast: ${OLLAMA_MODEL_FAST:qwen3:4b}
+        strong: ${OLLAMA_MODEL_STRONG:qwen3:4b}
         embedding: ${OLLAMA_MODEL_EMBEDDING:nomic-embed-text}
-        vision: ${OLLAMA_MODEL_VISION:llava:7b}
+        vision: ${OLLAMA_MODEL_VISION:qwen3:4b}
   storage:
     root-dir: ${STORAGE_ROOT:./data/storage}
     encryption:

@@ -3,6 +3,14 @@
 spring:
   application:
     name: jobpilot
+  autoconfigure:
+    exclude:
+      # Our auth is JWT-only (UserService.authenticate + JwtAuthenticationFilter);
+      # no UserDetailsService/AuthenticationManager bean is defined, so without
+      # this exclusion Boot auto-configures an in-memory user and logs a
+      # "generated security password" warning on every boot.
+      # Boot 4.1: the class lives in spring-boot-security (new package).
+      - org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
   jackson:
     default-property-inclusion: non_null
   servlet:
@@ -11,6 +19,13 @@ spring:
     multipart:
       max-file-size: 10MB
       max-request-size: 10MB
+  data:
+    redis:
+      repositories:
+        # No Redis repositories exist yet (JPA only). The starter stays for the
+        # planned rate-limiter (TASK-JP-0023), but disabling repo scanning
+        # prevents Spring Data from probing every JPA repo and warning.
+        enabled: false
 
 server:
   port: 8080

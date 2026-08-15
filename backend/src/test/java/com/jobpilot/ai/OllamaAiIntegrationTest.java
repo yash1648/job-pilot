@@ -10,15 +10,19 @@ import java.util.Map;
 
 /**
  * Round-trips a fixture prompt through a REAL local Ollama (doc 06 §1, doc 26 §3).
- * Tagged {@code slow} and skipped unless Ollama is reachable, so it never breaks
- * the default suite. Run locally with Ollama up to exercise the real provider.
+ * Tagged {@code slow} and skipped unless Ollama + a usable chat model are
+ * reachable, so it never breaks the default suite. Run locally with Ollama up
+ * (and at least one chat model pulled) to exercise the real provider.
  */
 @Tag("slow")
 class OllamaAiIntegrationTest {
 
+    /** A chat model that must exist on the local Ollama for this test to run. */
+    private static final String CHAT_MODEL = "qwen3:4b";
+
     private static boolean ollamaReachable(String baseUrl) {
         try {
-            new OllamaClient(baseUrl).generate("llama3.2:3b",
+            new OllamaClient(baseUrl).generate(CHAT_MODEL,
                     "reply with the single word: pong", "ping", null);
             return true;
         } catch (Exception e) {
@@ -30,8 +34,8 @@ class OllamaAiIntegrationTest {
     void skillClassificationRoundTripsThroughRealOllama() {
         String baseUrl = "http://localhost:11434";
         Assumptions.assumeTrue(ollamaReachable(baseUrl), "Ollama not reachable at " + baseUrl);
-        ModelRouter router = new ModelRouter("llama3.2:3b", "llama3.1:8b",
-                "nomic-embed-text", "llava:7b");
+        ModelRouter router = new ModelRouter(CHAT_MODEL, "qwen3:4b",
+                "nomic-embed-text", "qwen3:4b");
         OllamaAiService svc = new OllamaAiService(router, new OllamaClient(baseUrl));
 
         AiRequest req = new AiRequest(AiTaskType.SKILL_CLASSIFICATION,
