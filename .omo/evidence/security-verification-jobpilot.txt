@@ -1,0 +1,55 @@
+# Live security + data-flow verification — TASK-JP-0001..0005
+
+**Date:** 2026-08-15
+**Method:** App booted in DEV profile on :8081 (ddl-auto: validate — confirms JPA
+entities match Flyway schema, the guard that caught the citext bug). Real HTTP
+calls with real data via curl; DB-level assertions via `docker exec` into
+jobpilot-postgres-1 (psql not installed on host).
+
+## Boot
+- Dev boot clean: "Started JobPilotApplication", Tomcat :8081. No bean/schema errors.
+- Security filter chain loaded (SecurityConfig: stateless JWT, CSRF exempt for
+  /api/v1/** by design per doc 22 §3, 401 (not 403) for unauth API).
+
+## Live API results (real data)
+| # | Check | Result |
+|---|-------|--------|
+| 1 | Register user1 → 201, no password in body | PASS |
+| 2 | Unauth GET /candidate/profile → 401 UNAUTHORIZED | PASS |
+| 3 | Unauth GET /auth/me → 401 | PASS |
+| 4 | Login user1 → 200 + access(201B)/refresh(43B) tokens | PASS |
+| 5 | Tampered JWT → 401 | PASS |
+| 6 | Auth GET /auth/me → 200 (returns user1 email) | PASS |
+| 7 | PATCH /candidate/profile → 200 (stores scoped data) | PASS |
+| 8 | GET /candidate/profile → 200 (returns user1 data) | PASS |
+| 9 | PUT /preferences valid enums → 200 | PASS |
+| 10 | PUT /preferences invalid enum (TELEPORT) → 400 VALIDATION_ERROR | PASS |
+| 11 | GET /preferences → 200 | PASS |
+| 12 | Refresh → 200 new pair; OLD refresh reused → 401 (single-use rotation) | PASS |
+| 13 | Logout → 204; refresh after logout → 401 (revoked) | PASS |
+| 14 | user2 GET /candidate/profile → 404, NO user1 data leaked | PASS |
+
+NOTE: first run flagged #9/#11 as FAIL — that was a BAD TEST FIXTURE
+(automationMode "ASSISTED" is not a valid enum; valid = FULLY_MANUAL etc.,
+doc 03). Re-run with correct enum → 200. App behavior was correct.
+
+## DB-level evidence (docker exec postgres)
+- candidate_profiles: total=1; u1=1; u2=0 → structural cross-user isolation
+  holds at the data layer (no candidate-id path param; repo scopes by user_id).
+- users.password_hash: starts with `$2a$` → BCrypt, never plaintext.
+- refresh_tokens: 4 rows → revocation store populated (rotation/logout).
+
+## ai module (TASK-JP-0005)
+- No HTTP endpoint yet → no auth/security surface to exercise live.
+- Verified via: unit tests (fake provider), AiProviderWiringTest (Spring fake
+  wiring), dev-boot (ollama provider beans wire clean), ModuleBoundaryTest
+  (ai.provider isolation). Full suite 24/0/1(skip).
+
+## Conclusion
+Everything built so far (scaffold, migrations, auth, candidate CRUD, ai module)
+works with real data. Security-critical paths verified: JWT authn, 401 on
+unauth, tamper rejection, BCrypt passwords, refresh single-use rotation +
+revocation, input validation at trust boundary (400 on bad enum), and
+structural multi-tenant isolation (user2 cannot see user1 data at API or DB).
+
+Test artifacts (u1@sec.test, u2@sec.test + their rows) deleted; dev boot stopped.

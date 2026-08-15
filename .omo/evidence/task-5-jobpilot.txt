@@ -1,0 +1,38 @@
+# TASK-JP-0005 — ai module (provider abstraction + Ollama implementation)
+
+**Status:** DONE — committed `b710b3c`
+**Date:** 2026-08-15
+
+## What was built
+- `ai` package: `AiService`/`EmbeddingService`/`VisionService` interfaces; `AiRequest`
+  (UntrustedContent marker + trusted systemInstruction + ResponseSchema + budgetTokens);
+  `StructuredResponse<T>`; `AiTaskType` (9 tasks) → `ModelProfile` (FAST/STRONG/EMBEDDING/VISION);
+  `ModelRouter` (config-driven task→profile→model); `OutputValidator` (required-field presence);
+  typed failures `AiUnavailableException`/`AiOutputInvalidException`/`AiBudgetExceededException`.
+- `ai.provider.ollama`: `OllamaClient` (RestClient over `/api/generate` + `/api/embeddings`),
+  `OllamaAiService`/`OllamaEmbeddingService`/`OllamaVisionService` (structural system/prompt
+  separation; bounded output validation + one retry on schema failure).
+- `ai.provider.fake`: deterministic `FakeAiService`/`FakeEmbeddingService`/`FakeVisionService`
+  (1536-dim stable vector) for tests/dev without a model.
+- `AiConfiguration`: `@ConditionalOnProperty(jobpilot.ai.provider)` selects fake vs ollama.
+  Only `ai..` classes depend on `ai.provider..` (ModuleBoundaryTest enforced).
+
+## Verification
+- Full suite: **24 run, 0 fail, 1 skipped** (OllamaAiIntegrationTest skipped — Ollama daemon
+  up but model not pulled → graceful assumption skip). Includes `ModuleBoundaryTest` (2) PASS
+  → ai module boundary respected.
+- `AiProviderWiringTest` (@SpringBootTest, provider=fake): fake beans wired. PASS.
+- Dev boot on :8081 (profile=dev → ollama provider): clean startup, no bean errors. PASS.
+- Unit: `AiServiceTest`(3) `ModelRouterTest`(1) `OutputValidatorTest`(3) PASS.
+
+## Notes / deferred (doc 06 FUTURE markers)
+- Caching, batching, concurrency semaphore, reranker: not in Wave 1 skeleton (interfaces ready).
+- Full JSON-Schema validation: lightweight required-field presence only (Policy Engine adds
+  evidence-level validation later, doc 23 §4).
+- Real Ollama round-trip needs `ollama pull llama3.2:3b` (or strong model) to un-skip the
+  slow integration test.
+
+## Gotcha discovered
+- Spring Boot 4.1 ships **Jackson 3** → package is `tools.jackson.databind`, NOT
+  `com.fasterxml.jackson.databind` (compile error otherwise). Also `spring-boot-starter-webmvc`
+  (not `web`) and `AutoConfigureMockMvc` from `org.springframework.boot.webmvc.test.autoconfigure`.
