@@ -182,13 +182,14 @@ Waves follow the roadmap (a dependency chain, docs/36 §2). Within a wave, tasks
   Commit: Y | feat(auth): registration, login, JWT issuance
   DONE 2026-08-14: commit 9cd49e1, evidence .omo/evidence/task-3-jobpilot.txt, full suite 11 tests green. JWT bearer (not cookies) for API; /me returns RegisterResponse; logout permitAll; 401 via authenticationEntryPoint. Dev: PasswordConfig split from SecurityConfig (Boot 4.1 circular-ref ban), Boot 4 test import path, test-local ObjectMapper.
 
-- [ ] 4. CandidateProfile + JobPreference CRUD skeleton (TASK-JP-0004)
+- [x] 4. CandidateProfile + JobPreference CRUD skeleton (TASK-JP-0004)
   What to do / Must NOT do: doc 05 §2/§3 endpoints (GET/PATCH /candidate/profile, GET/PUT /preferences), doc 22 §2 candidate-scoping enforced at repository layer (NOT only controller). Must NOT return another candidate's data under any path (docs/25 §5); domain-rule validation in service, not annotations (docs/35 §8).
   Parallelization: Wave 1 | Blocked by: 3 | Blocks: —
   References (executor has NO interview context - be exhaustive): docs/05-api-specification.md:29-55; docs/22-security.md:14-22; docs/25-threat-model.md:41-46 (data theft); docs/03-domain-model.md:55-59,91-97; docs/04-database-design.md:36-76
   Acceptance criteria (agent-executable): cross-candidate access attempt returns 404 (security test, docs/25 §5); GET/PATCH/PUT round-trips pass API tests.
   QA scenarios (name the exact tool + invocation): happy — candidate A creates profile, candidate B GET /candidate/profile/{A-id} → 404, Evidence .omo/evidence/task-4-jobpilot.txt; failure — JobPreference PUT with invalid enum → 400 VALIDATION_ERROR.
   Commit: Y | feat(candidate): profile + preferences CRUD with candidate scoping
+  DONE 2026-08-15: commit 8607b2f, evidence .omo/evidence/task-4-jobpilot.txt, full suite 15 tests green. Scoping is structural (no candidate-id path param; repository resolves owner by user_id). Live dev boot validated new entities (ddl-auto:validate) — no type mismatch. Note: dev Postgres/Redis containers had exited; restart via backend/docker-compose.yml (jobpilot-postgres-1 / jobpilot-redis-1) before live boots.
 
 - [ ] 5. ai module — provider abstraction + Ollama implementation (TASK-JP-0005)
   What to do / Must NOT do: doc 06 §1 interfaces (AiService/EmbeddingService/VisionService), OllamaAiService/OllamaEmbeddingService/OllamaVisionService, ModelRouter (doc 06 §2) config-driven, AiRequest with UntrustedContent marker + output schema + budget (docs/06 §1, docs/23 §1), output validation per docs/06 §6. Must NOT let anything outside `ai` talk to a provider directly; must NOT string-concatenate untrusted content into instructions (docs/23 §2).
