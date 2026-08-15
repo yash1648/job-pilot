@@ -1,0 +1,31 @@
+TASK-JP-0010 — Resume parsing (PDF text-layer + OCR fallback, DOCX structured XML)
+Date: 2026-08-15
+Commit: 166f82e
+
+Verified locally (tesseract 5.5.3 + libtesseract.so present; pgvector Testcontainer):
+
+  ./mvnw test -Dtest='ResumeParsingServiceTest,ScannedPdfOcrTest,ResumeServiceParseStatusTest,ResumeApiTest,ModuleBoundaryTest'
+  -> Tests run: 17, Failures: 0, Errors: 0, Skipped: 0, BUILD SUCCESS
+
+  ./mvnw test -DExcludedGroups=slow   (full PR-gate suite)
+  -> Tests run: 54, Failures: 0, Errors: 0, Skipped: 1 (Ollama test self-skips), BUILD SUCCESS
+
+Cases exercised (programmatic fixtures, no binaries in repo — doc 26 §2):
+  - clean text-layer PDF            -> parsed, ocrUsed=false
+  - scanned (image-only) PDF        -> OCR fallback at 300 DPI, ocrUsed=true, text recovered
+  - DOCX with table                 -> w:t extraction via hardened DocumentBuilderFactory
+  - corrupt PDF                     -> ResumeParseException("unreadable PDF file") -> FAILED + reason
+  - zip-bomb DOCX (30MB inflated)   -> rejected at 20MB cap, no OOM (doc 22:40)
+  - XXE DOCX (DOCTYPE + external entity) -> rejected (disallow-doctype-decl, doc 22:39-41)
+  - unsupported MIME                -> ResumeParseException("unsupported file type")
+  - empty file                      -> ResumeParseException("empty file")
+  - ResumeService.parse(): success -> parse_status PARSED; failure -> parse_status FAILED + parse_failure_reason
+
+CI: merge.yml (main + nightly) installs tesseract-ocr so the slow OCR suite runs there;
+ci.yml PR gate excludes @Tag("slow") tests.
+
+Notes:
+  - PDFBox 3.x: Loader.loadPDF (PDDocument.load removed), PDType1Font constructed via
+    Standard14Fonts.FontName (static HELVETICA constant removed).
+  - tess4j on Linux needs system libtesseract.so (not bundled); tessdata resolved at
+    /usr/share/tessdata with fallback to the jar-bundled eng.traineddata.
