@@ -1,0 +1,54 @@
+TASK-JP-0004 — Candidate profile + preferences CRUD with scoping
+=================================================================
+Status: PASS
+
+Acceptance criteria:
+- GET/PATCH /candidate/profile round-trips .................... PASS
+  (no profile → 404; PATCH upserts; GET returns it; PATCH updates
+   only provided fields)
+- GET/PUT /preferences round-trips ............................ PASS
+  (no profile → 404; PUT full-replace → 200; GET returns it)
+- cross-candidate access attempt returns 404 ................. PASS
+  (user B GET /candidate/profile + /preferences → 404 even
+   though user A's profile exists — scoping is by owner userId
+   at the repository layer, doc 22 §2 / doc 25 §5)
+- invalid enum → 400 VALIDATION_ERROR ........................ PASS
+  (PUT /preferences {workMode:"TELEPORT"} → 400 VALIDATION_ERROR)
+- unauthenticated candidate request → 401 ..................... PASS
+
+QA scenarios (live boot against real Postgres, JWT round-trip):
+- happy: register → login → PATCH /candidate/profile → GET 200
+  → PUT /preferences → GET 200 ................................. PASS
+  Evidence: this file + CandidateApiTest (4 scenarios, MockMvc)
+- failure: user B cannot read user A's profile/prefs (404) .... PASS
+- failure: invalid enum value rejected at 400 ................. PASS
+
+Deliverables:
+- candidate module (doc 34 §3, already in ModuleBoundaryTest):
+  - domain: CandidateProfile, JobPreference, WorkMode, AutomationMode
+    (TEXT[] arrays + @Enumerated(STRING) enums; user_id / candidate_profile_id
+     stored as UUID columns, NOT JPA relations to other modules)
+  - repository: CandidateProfileRepository.findByUserId,
+    JobPreferenceRepository.findByCandidateProfileId (scoping by owner)
+  - service: CandidateService (profile get/update), PreferencesService
+    (preferences get/replace); both throw ApiException NOT_FOUND (404)
+  - api: CandidateProfileController (/api/v1/candidate/profile),
+    PreferencesController (/api/v1/preferences)
+  - CandidateDtos: ProfilePatchRequest, ProfileResponse,
+    PreferencesRequest (@NotNull enums), PreferencesResponse
+- common: GlobalExceptionHandler now maps HttpMessageNotReadableException
+  (invalid enum in JSON) → 400 VALIDATION_ERROR (doc 05 §12)
+- CandidateApiTest: 4 scenarios (profile round-trip, preferences +
+  invalid enum, cross-candidate 404, unauth 401)
+
+Deviation notes:
+- scoping is structural: endpoints take no candidate id path param; the
+  repository resolves only the authenticated user's own profile via
+  user_id, so cross-candidate leakage is impossible even if a controller
+  check is missed (doc 22 §2 defense-in-depth).
+- preferences require an existing profile (404 if none) — FK
+  job_preferences.candidate_profile_id.
+- PATCH profile upserts (creates if the user has no profile yet).
+- live dev boot validated the new entities against the real schema
+  (ddl-auto: validate) — no column-type mismatches (TEXT[] / enums map
+  cleanly; the earlier citext fix on users.email already covered).

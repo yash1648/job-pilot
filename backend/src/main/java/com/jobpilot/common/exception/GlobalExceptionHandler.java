@@ -2,6 +2,7 @@ package com.jobpilot.common.exception;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -29,6 +30,13 @@ public class GlobalExceptionHandler {
                 .forEach(fe -> details.put(fe.getField(), fe.getDefaultMessage()));
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(error("VALIDATION_ERROR", "request body fails schema", details));
+    }
+
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<Map<String, Object>> handleUnreadable(HttpMessageNotReadableException e) {
+        // e.g. invalid enum value in JSON body (doc 05 §12)
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(error("VALIDATION_ERROR", "request body fails schema", null));
     }
 
     @ExceptionHandler(Exception.class)
