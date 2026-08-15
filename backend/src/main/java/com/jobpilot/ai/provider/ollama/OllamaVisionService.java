@@ -29,8 +29,8 @@ public class OllamaVisionService implements VisionService {
     @Override
     public StructuredResponse<?> interpret(byte[] image, AiRequest context) {
         String model = router.resolve(com.jobpilot.ai.AiTaskType.PAGE_UNDERSTANDING);
-        String schema = context.outputSchema() != null
-                ? "{\"type\":\"object\",\"required\":[]}" : null;
+        Object schema = context.outputSchema() != null
+                ? toJsonSchema(context.outputSchema()) : null;
         long start = System.nanoTime();
         try {
             String raw = client.generateWithImage(model, context.systemInstruction(),
@@ -44,6 +44,18 @@ public class OllamaVisionService implements VisionService {
         } catch (AiOutputInvalidException e) {
             throw e;
         }
+    }
+
+    private static java.util.Map<String, Object> toJsonSchema(com.jobpilot.ai.ResponseSchema schema) {
+        java.util.Map<String, Object> props = new java.util.LinkedHashMap<>();
+        for (String field : schema.requiredFields()) {
+            props.put(field, new java.util.LinkedHashMap<>());
+        }
+        java.util.Map<String, Object> out = new java.util.LinkedHashMap<>();
+        out.put("type", "object");
+        out.put("properties", props);
+        out.put("required", java.util.List.of(schema.requiredFields()));
+        return out;
     }
 
     @SuppressWarnings("unchecked")

@@ -32,7 +32,7 @@ public class OllamaAiService implements AiService {
     @Override
     public StructuredResponse<?> complete(AiRequest request) {
         String model = router.resolve(request.taskType());
-        String schema = request.outputSchema() != null ? toJsonSchema(request.outputSchema()) : null;
+        Object schema = request.outputSchema() != null ? toJsonSchema(request.outputSchema()) : null;
         long start = System.nanoTime();
         try {
             String raw = tryGenerate(model, request, schema, null);
@@ -52,7 +52,7 @@ public class OllamaAiService implements AiService {
         }
     }
 
-    private String tryGenerate(String model, AiRequest request, String schema, String overrideSystem) {
+    private String tryGenerate(String model, AiRequest request, Object schema, String overrideSystem) {
         try {
             return client.generate(model,
                     overrideSystem != null ? overrideSystem : request.systemInstruction(),
@@ -73,16 +73,17 @@ public class OllamaAiService implements AiService {
                 latencyMs);
     }
 
-    private static String toJsonSchema(com.jobpilot.ai.ResponseSchema schema) {
-        StringBuilder required = new StringBuilder("[");
-        for (int i = 0; i < schema.requiredFields().length; i++) {
-            required.append('"').append(schema.requiredFields()[i]).append('"');
-            if (i < schema.requiredFields().length - 1) {
-                required.append(',');
-            }
+    /** Build a valid JSON-Schema object for Ollama's structured output (doc 06 §6). */
+    private static java.util.Map<String, Object> toJsonSchema(com.jobpilot.ai.ResponseSchema schema) {
+        java.util.Map<String, Object> props = new java.util.LinkedHashMap<>();
+        for (String field : schema.requiredFields()) {
+            props.put(field, new java.util.LinkedHashMap<>()); // any type; presence enforced
         }
-        required.append(']');
-        return "{\"type\":\"object\",\"required\":" + required + "}";
+        java.util.Map<String, Object> out = new java.util.LinkedHashMap<>();
+        out.put("type", "object");
+        out.put("properties", props);
+        out.put("required", java.util.List.of(schema.requiredFields()));
+        return out;
     }
 
     private static int estimateTokens(AiRequest request) {

@@ -4,6 +4,8 @@ import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 import org.springframework.web.client.RestClient;
 
+import com.jobpilot.ai.AiUnavailableException;
+
 import java.time.Duration;
 
 /**
@@ -23,8 +25,8 @@ public class OllamaClient {
                 .build();
     }
 
-    /** Generate text (optionally structured via a JSON-Schema {@code format}). */
-    public String generate(String model, String system, String prompt, String formatSchema) {
+    /** Generate text (optionally structured via a JSON-Schema {@code format} object). */
+    public String generate(String model, String system, String prompt, Object formatSchema) {
         java.util.Map<String, Object> body = new java.util.LinkedHashMap<>();
         body.put("model", model);
         if (system != null) {
@@ -43,11 +45,11 @@ public class OllamaClient {
                 .body(body)
                 .retrieve()
                 .body(String.class);
-        return readField(response, "response");
+        return responseText(response);
     }
 
     /** Generate with an attached image (base64) for vision tasks. */
-    public String generateWithImage(String model, String system, String prompt, byte[] image, String formatSchema) {
+    public String generateWithImage(String model, String system, String prompt, byte[] image, Object formatSchema) {
         java.util.Map<String, Object> body = new java.util.LinkedHashMap<>();
         body.put("model", model);
         if (system != null) {
@@ -67,7 +69,7 @@ public class OllamaClient {
                 .body(body)
                 .retrieve()
                 .body(String.class);
-        return readField(response, "response");
+        return responseText(response);
     }
 
     /** Produce an embedding vector. */
@@ -95,13 +97,23 @@ public class OllamaClient {
         }
     }
 
-    private String readField(String response, String field) {
+    private String responseText(String raw) {
         try {
-            JsonNode node = mapper.readTree(response);
-            JsonNode value = node.get(field);
-            return value != null ? value.asText() : "";
+            JsonNode node = mapper.readTree(raw);
+            JsonNode resp = node.get("response");
+            if (resp != null && !resp.asText().isBlank()) {
+                return resp.asText();
+            }
+            // reasoning models (e.g. qwen3) emit the answer in "thinking" and leave
+            // "response" empty — fall back so generation still works (doc 06 models are
+            // non-reasoning, but this keeps the client robust to either shape).
+            JsonNode thinking = node.get("thinking");
+            if (thinking != null && !thinking.asText().isBlank()) {
+                return thinking.asText();
+            }
+            return "";
         } catch (Exception e) {
-            throw new com.jobpilot.ai.AiUnavailableException("invalid generate response", e);
+            throw new AiUnavailableException("invalid generate response", e);
         }
     }
 }
