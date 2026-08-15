@@ -22,8 +22,12 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
-      # Full suite INCLUDING @Tag("slow") (real-Ollama integration). The slow
-      # test self-skips via Assumptions when Ollama is unreachable, so this
-      # never hard-fails solely for lack of a model in CI.
-      - name: Full suite (incl. slow AI/browser suites)
+      # Scanned-PDF OCR tests need the Tesseract native library on Linux
+      # (tess4j does not bundle it — see TASK-JP-0010).
+      - name: Install Tesseract OCR
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends tesseract-ocr
+      # Full suite INCLUDING @Tag("slow") (real-Ollama integration, OCR). The slow
+      # tests self-skip via Assumptions when their engine is unreachable, so this
+      # never hard-fails solely for lack of a model/OCR in CI.
+      - name: Full suite (incl. slow AI/OCR suites)
         run: ./mvnw -B test

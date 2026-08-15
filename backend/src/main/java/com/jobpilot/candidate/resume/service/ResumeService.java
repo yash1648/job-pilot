@@ -31,13 +31,16 @@ public class ResumeService {
     private final ResumeRepository resumeRepository;
     private final CandidateProfileRepository candidateProfileRepository;
     private final StorageService storageService;
+    private final ResumeParsingService parsingService;
 
     public ResumeService(ResumeRepository resumeRepository,
                          CandidateProfileRepository candidateProfileRepository,
-                         StorageService storageService) {
+                         StorageService storageService,
+                         ResumeParsingService parsingService) {
         this.resumeRepository = resumeRepository;
         this.candidateProfileRepository = candidateProfileRepository;
         this.storageService = storageService;
+        this.parsingService = parsingService;
     }
 
     @Transactional
@@ -94,6 +97,26 @@ public class ResumeService {
         resumeRepository.findByCandidateProfileId(candidateProfileId)
                 .forEach(r -> r.setMaster(r.getId().equals(id)));
         return ResumeResponse.from(target);
+    }
+
+    /**
+     * Parses a resume's stored bytes and records the outcome (doc 07 §2/§9):
+     * success → PARSED; failure → FAILED with a user-facing reason. The actual
+     * AI extraction stage consumes the parsed text in a later task.
+     */
+    @Transactional
+    public ResumeResponse parse(UUID userId, UUID resumeId) {
+        Resume resume = loadOwned(userId, resumeId);
+        byte[] bytes = storageService.retrieve(resume.getStorageRef());
+        try {
+            parsingService.parse(bytes, resume.getMimeType());
+            resume.setParseStatus(ResumeParseStatus.PARSED);
+            resume.setParseFailureReason(null);
+        } catch (ResumeParseException e) {
+            resume.setParseStatus(ResumeParseStatus.FAILED);
+            resume.setParseFailureReason(e.reason());
+        }
+        return ResumeResponse.from(resumeRepository.save(resume));
     }
 
     private UUID candidateProfileId(UUID userId) {

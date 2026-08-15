@@ -18,6 +18,7 @@ public final class ResumeDtos {
             String mimeType,
             boolean isMaster,
             String parseStatus,
+            String parseFailureReason,
             String uploadedAt) {
 
         public static ResumeResponse from(Resume r) {
@@ -28,6 +29,7 @@ public final class ResumeDtos {
                     r.getMimeType(),
                     r.isMaster(),
                     r.getParseStatus().name(),
+                    r.getParseFailureReason(),
                     r.getUploadedAt().toString());
         }
     }

@@ -21,6 +21,8 @@
 		<playwright.version>1.49.0</playwright.version>
 		<testcontainers.version>1.21.4</testcontainers.version>
 		<jjwt.version>0.12.7</jjwt.version>
+		<pdfbox.version>3.0.8</pdfbox.version>
+		<tess4j.version>5.16.0</tess4j.version>
 	</properties>
 
 	<dependencies>
@@ -105,6 +107,21 @@
 			<groupId>com.microsoft.playwright</groupId>
 			<artifactId>playwright</artifactId>
 			<version>${playwright.version}</version>
+		</dependency>
+
+		<!-- Resume parsing (doc 07 §2): PDF text-layer + OCR fallback, pinned to
+		     3.0.8 so it overrides the 3.0.5 pulled transitively by tess4j -->
+		<dependency>
+			<groupId>org.apache.pdfbox</groupId>
+			<artifactId>pdfbox</artifactId>
+			<version>${pdfbox.version}</version>
+		</dependency>
+		<!-- OCR fallback for scanned PDFs (doc 07:18). On Linux this needs a
+		     system-installed Tesseract (libtesseract.so) — see CI workflow. -->
+		<dependency>
+			<groupId>net.sourceforge.tess4j</groupId>
+			<artifactId>tess4j</artifactId>
+			<version>${tess4j.version}</version>
 		</dependency>
 
 		<!-- Test -->

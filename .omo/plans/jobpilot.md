@@ -235,7 +235,7 @@ Waves follow the roadmap (a dependency chain, docs/36 §2). Within a wave, tasks
   QA scenarios (name the exact tool + invocation): happy — curl -F resume=@fixture.pdf → 202, Evidence .omo/evidence/task-9-jobpilot.txt; failure — .txt upload → 400; DELETE master without replacement → 409.
   Commit: Y | feat(candidate): resume upload + storage integration
 
-- [ ] 10. Resume parsing — PDF (text-layer + OCR fallback) and DOCX (structured XML) (TASK-JP-0010)
+- [x] 10. Resume parsing — PDF (text-layer + OCR fallback) and DOCX (structured XML) (TASK-JP-0010)
   What to do / Must NOT do: ResumeParsingService per docs/07 §2: PDF text-layer extraction first, OCR fallback for scanned PDFs; DOCX structured XML parsing; parse failures set parse_status=FAILED with user-facing reason (docs/07:36-38). Zip-bomb/XXE protections for DOCX (docs/22:39-41). Must NOT silently produce an empty profile; must NOT attempt OCR on clean text PDFs first.
   Parallelization: Wave 2 | Blocked by: 9 | Blocks: 11
   References (executor has NO interview context - be exhaustive): docs/07-candidate-intelligence.md:14-19,36-38; docs/22-security.md:39-41; docs/26-testing.md:45-47 (fixture resumes); docs/30-error-handling.md (doc 30 §1 taxonomy); docs/07 §9 failure table

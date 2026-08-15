@@ -43,6 +43,9 @@ public class Resume {
     @Column(name = "parse_status", nullable = false)
     private ResumeParseStatus parseStatus;
 
+    @Column(name = "parse_failure_reason")
+    private String parseFailureReason;
+
     @Column(name = "uploaded_at", nullable = false, updatable = false)
     private Instant uploadedAt;
 
@@ -94,6 +97,14 @@ public class Resume {
 
     public void setParseStatus(ResumeParseStatus parseStatus) {
         this.parseStatus = parseStatus;
+    }
+
+    public String getParseFailureReason() {
+        return parseFailureReason;
+    }
+
+    public void setParseFailureReason(String parseFailureReason) {
+        this.parseFailureReason = parseFailureReason;
     }
 
     public Instant getUploadedAt() {
