@@ -227,7 +227,7 @@ Waves follow the roadmap (a dependency chain, docs/36 §2). Within a wave, tasks
 
 ### Wave 2 — Phase 2: Candidate Intelligence (docs/07)
 
-- [ ] 9. Resume upload endpoint + storage integration (TASK-JP-0009)
+- [x] 9. Resume upload endpoint + storage integration (TASK-JP-0009)
   What to do / Must NOT do: POST /candidate/resumes (multipart, 202, async parse), GET /candidate/resumes, GET /candidate/resumes/{id}, DELETE /candidate/resumes/{id} (409 if isMaster and no replacement), POST /candidate/resumes/{id}/set-master (docs/05 §2). Route through StorageService (docs/22 §4): MIME allow-list PDF/DOCX by content-sniffing, size limit, parse_status PENDING on insert. Must NOT store outside StorageService; must NOT auto-promote is_master on upload (docs/07 §8).
   Parallelization: Wave 2 | Blocked by: 7 | Blocks: 10
   References (executor has NO interview context - be exhaustive): docs/05-api-specification.md:33-39; docs/22-security.md:32-49; docs/07-candidate-intelligence.md:12-38,84-94; docs/03-domain-model.md:61-64; docs/04-database-design.md:82-95

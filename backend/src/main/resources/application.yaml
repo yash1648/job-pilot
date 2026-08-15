@@ -5,6 +5,12 @@ spring:
     name: jobpilot
   jackson:
     default-property-inclusion: non_null
+  servlet:
+    # align with storage max-size (doc 22 §4) so Spring rejects oversized
+    # uploads before they reach the storage service
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
 
 server:
   port: 8080
