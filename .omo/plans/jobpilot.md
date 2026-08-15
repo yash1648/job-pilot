@@ -191,7 +191,7 @@ Waves follow the roadmap (a dependency chain, docs/36 §2). Within a wave, tasks
   Commit: Y | feat(candidate): profile + preferences CRUD with candidate scoping
   DONE 2026-08-15: commit 8607b2f, evidence .omo/evidence/task-4-jobpilot.txt, full suite 15 tests green. Scoping is structural (no candidate-id path param; repository resolves owner by user_id). Live dev boot validated new entities (ddl-auto:validate) — no type mismatch. Note: dev Postgres/Redis containers had exited; restart via backend/docker-compose.yml (jobpilot-postgres-1 / jobpilot-redis-1) before live boots.
 
-- [ ] 5. ai module — provider abstraction + Ollama implementation (TASK-JP-0005)
+- [x] 5. ai module — provider abstraction + Ollama implementation (TASK-JP-0005)
   What to do / Must NOT do: doc 06 §1 interfaces (AiService/EmbeddingService/VisionService), OllamaAiService/OllamaEmbeddingService/OllamaVisionService, ModelRouter (doc 06 §2) config-driven, AiRequest with UntrustedContent marker + output schema + budget (docs/06 §1, docs/23 §1), output validation per docs/06 §6. Must NOT let anything outside `ai` talk to a provider directly; must NOT string-concatenate untrusted content into instructions (docs/23 §2).
   Parallelization: Wave 1 | Blocked by: 1 | Blocks: 11, 12, 21, 31..33
   References (executor has NO interview context - be exhaustive): docs/06-ai-architecture.md:1-47,108-121; docs/23-ai-security.md:5-14; docs/26-testing.md:58-63 (fake AI in unit tests); docs/33-devops.md:31-33 (ollama container)
@@ -199,13 +199,14 @@ Waves follow the roadmap (a dependency chain, docs/36 §2). Within a wave, tasks
   QA scenarios (name the exact tool + invocation): happy — integration test: SKILL_CLASSIFICATION call returns StructuredResponse with schema-valid fields, Evidence .omo/evidence/task-5-jobpilot.txt; failure — Ollama down → AiUnavailableException typed failure, not silent empty.
   Commit: Y | feat(ai): provider abstraction + Ollama implementation
 
-- [ ] 6. audit module — AuditEvent persistence + append-only enforcement (TASK-JP-0006)
+- [x] 6. audit module — AuditEvent persistence + append-only enforcement (TASK-JP-0006)
   What to do / Must NOT do: doc 04 §2.6 audit_events table, DB role grants (no UPDATE/DELETE for app role), AuditService.record(...) API. Must NOT allow application DB role to UPDATE/DELETE audit_events (docs/04:481, docs/22 §10); must NOT log secrets in payload (docs/29 §1).
   Parallelization: Wave 1 | Blocked by: 2 | Blocks: 11+ (event writers)
   References (executor has NO interview context - be exhaustive): docs/04-database-design.md:470-482; docs/22-security.md:95-101; docs/03-domain-model.md:223-225; docs/29-observability.md:36-45 (audit vs logs vs metrics)
   Acceptance criteria (agent-executable): attempted UPDATE/DELETE via the app DB role fails at the DB level (integration test); AuditService.record round-trips.
   QA scenarios (name the exact tool + invocation): happy — integration test: record() then SELECT works, UPDATE via app role throws, Evidence .omo/evidence/task-6-jobpilot.txt; failure — payload containing secret-shaped key is redacted by wrapper (docs/29 §1).
   Commit: Y | feat(audit): append-only audit event store
+  DONE 2026-08-15: implemented (not yet committed). Files: V4__audit.sql (table + ix_audit_entity + trg_audit_events_append_only BEFORE UPDATE/DELETE trigger), audit.domain.{ActorType,AuditEvent}, audit.repository.AuditEventRepository, audit.api.{AuditService,AuditController(AuditDtos)}, audit.service.AuditServiceImpl (secret-key scan rejects password/token/secret/etc in payload, doc 29 §1). GET /api/v1/settings/audit scoped to principal (doc 05 §9, doc 22 §10). Tests: AuditApiTest (3: own-trail scoping, unauth 401, append-only trigger blocks UPDATE/DELETE via JdbcTemplate), AuditServiceImplTest (4: secret guard), ModuleBoundaryTest still green. Full suite 29 run/0 fail/1 skip (Ollama slow test); the 1 error in the full run was a Testcontainers container-startup flake (MigrationConstraintTest passes in isolation). Dev boot (ddl-auto:validate) applied V4 + started clean on :8080. NOTE: append-only enforced via DB trigger (not role revocation) because the app connects as the schema owner in dev/test, where GRANT revocation would not stop the owner — trigger holds for any role.
 
 - [ ] 7. storage module — resume/document persistence with encryption (TASK-JP-0007)
   What to do / Must NOT do: doc 22 §4/§5 — MIME allow-list (PDF/DOCX) enforced by content-sniffing (not extension), size limits, storage outside web root, access only via StorageService, encrypted at rest. Must NOT expose direct file paths via URLs; must NOT accept disallowed MIME types.
