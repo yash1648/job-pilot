@@ -40,7 +40,7 @@ CREATE TABLE skills (
   normalized_name TEXT NOT NULL,
   category TEXT,
   proficiency TEXT,
-  years_experience NUMERIC,
+  years_experience double precision,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX ix_skills_candidate_norm ON skills(candidate_profile_id, normalized_name);
@@ -52,7 +52,7 @@ CREATE TABLE skill_evidence (
     CHECK (source_type IN ('EXPERIENCE','PROJECT','CERTIFICATION','EDUCATION')),
   source_id UUID NOT NULL,
   excerpt TEXT NOT NULL,
-  confidence NUMERIC NOT NULL CHECK (confidence BETWEEN 0 AND 1)
+  confidence double precision NOT NULL CHECK (confidence BETWEEN 0 AND 1)
 );
 CREATE INDEX ix_skill_evidence_skill ON skill_evidence(skill_id);
 
