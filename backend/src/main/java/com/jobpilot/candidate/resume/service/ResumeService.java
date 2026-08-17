@@ -1,15 +1,21 @@
 package com.jobpilot.candidate.resume.service;
 
+import com.jobpilot.audit.api.AuditDtos.AuditEventRequest;
+import com.jobpilot.audit.api.AuditService;
 import com.jobpilot.candidate.repository.CandidateProfileRepository;
 import com.jobpilot.candidate.resume.api.ResumeDtos.ResumeResponse;
 import com.jobpilot.candidate.resume.domain.Resume;
 import com.jobpilot.candidate.resume.domain.ResumeParseStatus;
 import com.jobpilot.candidate.resume.repository.ResumeRepository;
+import com.jobpilot.candidate.service.ProfileSynthesisService;
+import com.jobpilot.candidate.skill.service.SkillExtractionService;
 import com.jobpilot.common.exception.ApiException;
 import com.jobpilot.storage.api.StorageDtos.StoredFile;
 import com.jobpilot.storage.api.StorageDtos.StoreRequest;
 import com.jobpilot.storage.api.StorageService;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +23,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -32,15 +39,29 @@ public class ResumeService {
     private final CandidateProfileRepository candidateProfileRepository;
     private final StorageService storageService;
     private final ResumeParsingService parsingService;
+    private final ResumeAiExtractionService extractionService;
+    private final SkillExtractionService skillExtractionService;
+    private final ProfileSynthesisService profileSynthesisService;
+    private final AuditService auditService;
+
+    private static final Logger log = LoggerFactory.getLogger(ResumeService.class);
 
     public ResumeService(ResumeRepository resumeRepository,
-                         CandidateProfileRepository candidateProfileRepository,
-                         StorageService storageService,
-                         ResumeParsingService parsingService) {
+                          CandidateProfileRepository candidateProfileRepository,
+                          StorageService storageService,
+                          ResumeParsingService parsingService,
+                           ResumeAiExtractionService extractionService,
+                           SkillExtractionService skillExtractionService,
+                           ProfileSynthesisService profileSynthesisService,
+                           AuditService auditService) {
         this.resumeRepository = resumeRepository;
         this.candidateProfileRepository = candidateProfileRepository;
         this.storageService = storageService;
         this.parsingService = parsingService;
+        this.extractionService = extractionService;
+        this.skillExtractionService = skillExtractionService;
+        this.profileSynthesisService = profileSynthesisService;
+        this.auditService = auditService;
     }
 
     @Transactional
@@ -101,21 +122,60 @@ public class ResumeService {
 
     /**
      * Parses a resume's stored bytes and records the outcome (doc 07 §2/§9):
-     * success → PARSED; failure → FAILED with a user-facing reason. The actual
-     * AI extraction stage consumes the parsed text in a later task.
+     * text extraction succeeds AND AI evidence extraction produces schema-valid,
+     * evidence-grounded entities → PARSED; a text-parse failure OR a
+     * schema-invalid AI extraction → FAILED with a user-facing reason plus a
+     * {@code ResumeParsingFailed} audit event (doc 07:102).
      */
     @Transactional
     public ResumeResponse parse(UUID userId, UUID resumeId) {
         Resume resume = loadOwned(userId, resumeId);
         byte[] bytes = storageService.retrieve(resume.getStorageRef());
+        String parsedText;
         try {
-            parsingService.parse(bytes, resume.getMimeType());
+            parsedText = parsingService.parse(bytes, resume.getMimeType()).text();
+        } catch (ResumeParseException e) {
+            return markFailed(resume, userId, e.reason());
+        }
+        try {
+            extractionService.extract(resume.getCandidateProfileId(), parsedText);
+            try {
+                skillExtractionService.extractSkills(resume.getCandidateProfileId());
+            } catch (Exception e) {
+                return markFailed(resume, userId, "skill extraction failed: " + e.getMessage());
+            }
+            // Synthesis + embedding (doc 07 §2): best-effort. Extraction succeeded,
+            // so a synthesis failure must NOT fail the parse — the profile stays
+            // PARSED and the failure is logged + audited (doc 07 §9, doc 09).
+            try {
+                profileSynthesisService.synthesize(resume.getCandidateProfileId());
+            } catch (Exception e) {
+                log.warn("Profile synthesis failed for resume {} (candidate {}); resume remains PARSED. Reason: {}",
+                        resumeId, resume.getCandidateProfileId(), e.getMessage());
+                auditService.record(new AuditEventRequest(
+                        "SYSTEM", userId.toString(),
+                        "ProfileSynthesisFailed",
+                        "Resume", resume.getId().toString(),
+                        Map.of("reason", e.getMessage())));
+            }
             resume.setParseStatus(ResumeParseStatus.PARSED);
             resume.setParseFailureReason(null);
-        } catch (ResumeParseException e) {
-            resume.setParseStatus(ResumeParseStatus.FAILED);
-            resume.setParseFailureReason(e.reason());
+            return ResumeResponse.from(resumeRepository.save(resume));
+        } catch (ResumeExtractionException e) {
+            return markFailed(resume, userId, e.reason());
         }
+    }
+
+    private ResumeResponse markFailed(Resume resume, UUID userId, String reason) {
+        resume.setParseStatus(ResumeParseStatus.FAILED);
+        resume.setParseFailureReason(reason);
+        auditService.record(new AuditEventRequest(
+                "SYSTEM",
+                userId.toString(),
+                "ResumeParsingFailed",
+                "Resume",
+                resume.getId().toString(),
+                Map.of("reason", reason)));
         return ResumeResponse.from(resumeRepository.save(resume));
     }
 

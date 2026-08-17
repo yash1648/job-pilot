@@ -77,7 +77,16 @@ public class OllamaAiService implements AiService {
     private static java.util.Map<String, Object> toJsonSchema(com.jobpilot.ai.ResponseSchema schema) {
         java.util.Map<String, Object> props = new java.util.LinkedHashMap<>();
         for (String field : schema.requiredFields()) {
-            props.put(field, new java.util.LinkedHashMap<>()); // any type; presence enforced
+            // each evidence collection is an array of objects (doc 07 §2). An
+            // explicit shape is required for Ollama structured output — an empty
+            // "{}" schema yields empty/garbage arrays from reasoning models
+            // (qwen3 returned []; gemma4 hung), so we type it concretely.
+            java.util.Map<String, Object> item = new java.util.LinkedHashMap<>();
+            item.put("type", "object");
+            java.util.Map<String, Object> array = new java.util.LinkedHashMap<>();
+            array.put("type", "array");
+            array.put("items", item);
+            props.put(field, array);
         }
         java.util.Map<String, Object> out = new java.util.LinkedHashMap<>();
         out.put("type", "object");

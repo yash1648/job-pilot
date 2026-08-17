@@ -37,7 +37,10 @@ public class OllamaClient {
             body.put("format", formatSchema);
         }
         body.put("stream", false);
-        body.put("options", java.util.Map.of("timeout", 120));
+        // deterministic, non-reasoning extraction: disable thinking (qwen3-style
+        // reasoning models otherwise burn the token budget on <thinking> and
+        // return empty structured output) and pin temperature (doc 06 §6).
+        body.put("options", java.util.Map.of("timeout", 120, "temperature", 0, "think", false));
 
         String response = restClient.post()
                 .uri("/api/generate")
@@ -61,7 +64,7 @@ public class OllamaClient {
             body.put("format", formatSchema);
         }
         body.put("stream", false);
-        body.put("options", java.util.Map.of("timeout", 120));
+        body.put("options", java.util.Map.of("timeout", 120, "temperature", 0, "think", false));
 
         String response = restClient.post()
                 .uri("/api/generate")

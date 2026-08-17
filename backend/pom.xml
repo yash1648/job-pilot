@@ -68,7 +68,6 @@
 		<dependency>
 			<groupId>org.postgresql</groupId>
 			<artifactId>postgresql</artifactId>
-			<scope>runtime</scope>
 		</dependency>
 		<dependency>
 			<groupId>com.pgvector</groupId>
@@ -156,13 +155,24 @@
 		</dependency>
 	</dependencies>
 
-	<build>
-		<plugins>
-			<plugin>
-				<groupId>org.springframework.boot</groupId>
-				<artifactId>spring-boot-maven-plugin</artifactId>
-			</plugin>
-		</plugins>
-	</build>
+ 	<build>
+ 		<plugins>
+ 			<plugin>
+ 				<groupId>org.apache.maven.plugins</groupId>
+ 				<artifactId>maven-surefire-plugin</artifactId>
+ 				<configuration>
+ 					<!-- Exclude real-provider/slow tests (tagged @Tag("slow")) from the
+ 					     default gate so it stays deterministic on the fake provider.
+ 					     Run them explicitly (e.g. -DexcludedGroups=) when the gateway
+ 					     is up. See test doc comments (doc 07 §2, doc 26 §3). -->
+ 					<excludedGroups>slow</excludedGroups>
+ 				</configuration>
+ 			</plugin>
+ 			<plugin>
+ 				<groupId>org.springframework.boot</groupId>
+ 				<artifactId>spring-boot-maven-plugin</artifactId>
+ 			</plugin>
+ 		</plugins>
+ 	</build>
 
 </project>

@@ -119,7 +119,7 @@ CREATE TABLE achievements (
 CREATE TABLE candidate_embeddings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   candidate_profile_id UUID NOT NULL UNIQUE REFERENCES candidate_profiles(id) ON DELETE CASCADE,
-  vector vector(1536) NOT NULL,
+  vector vector(768) NOT NULL,
   model_version TEXT NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );

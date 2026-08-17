@@ -2,7 +2,6 @@ package com.jobpilot.audit.service;
 
 import com.jobpilot.audit.api.AuditDtos.AuditEventRequest;
 import com.jobpilot.audit.api.AuditService;
-import com.jobpilot.audit.domain.ActorType;
 import com.jobpilot.audit.domain.AuditEvent;
 import com.jobpilot.audit.repository.AuditEventRepository;
 
@@ -29,7 +28,7 @@ class AuditServiceImplTest {
     @Test
     void recordsNonSecretEvent() {
         service.record(new AuditEventRequest(
-                ActorType.USER, "u1", "LOGIN", "user", "u1", Map.of("ip", "1.2.3.4")));
+                "USER", "u1", "LOGIN", "user", "u1", Map.of("ip", "1.2.3.4")));
         verify(repository).save(any(AuditEvent.class));
     }
 
@@ -37,7 +36,7 @@ class AuditServiceImplTest {
     void rejectsSecretInTopLevelPayload() {
         IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
                 service.record(new AuditEventRequest(
-                        ActorType.USER, "u1", "LOGIN", "user", "u1",
+                        "USER", "u1", "LOGIN", "user", "u1",
                         Map.of("password", "hunter2"))));
         assertEquals("audit payload must not contain secrets (field: password)", ex.getMessage());
     }
@@ -46,14 +45,22 @@ class AuditServiceImplTest {
     void rejectsSecretInNestedPayload() {
         assertThrows(IllegalArgumentException.class, () ->
                 service.record(new AuditEventRequest(
-                        ActorType.USER, "u1", "LOGIN", "user", "u1",
+                        "USER", "u1", "LOGIN", "user", "u1",
                         Map.of("meta", Map.of("sessionToken", "abc")))));
     }
 
     @Test
     void nullPayloadIsAllowed() {
         service.record(new AuditEventRequest(
-                ActorType.SYSTEM, null, "SCHEDULED", "job", "j1", null));
+                "SYSTEM", null, "SCHEDULED", "job", "j1", null));
         verify(repository).save(any(AuditEvent.class));
+    }
+
+    @Test
+    void rejectsUnknownActorType() {
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class, () ->
+                service.record(new AuditEventRequest(
+                        "ROBOT", "u1", "LOGIN", "user", "u1", Map.of())));
+        assertEquals("unknown actorType: ROBOT", ex.getMessage());
     }
 }

@@ -1,6 +1,5 @@
 package com.jobpilot.audit.api;
 
-import com.jobpilot.audit.domain.ActorType;
 import com.jobpilot.audit.domain.AuditEvent;
 
 import java.time.Instant;
@@ -15,9 +14,13 @@ public final class AuditDtos {
     private AuditDtos() {
     }
 
-    /** System-side call to record an audit event. Never include secrets (doc 29 §1). */
+    /**
+     * System-side call to record an audit event (doc 29 §1). {@code actorType}
+     * is one of {@code USER}, {@code SYSTEM}, {@code AI_AGENT}; validated by
+     * the {@link AuditService} implementation. Never include secrets.
+     */
     public record AuditEventRequest(
-            ActorType actorType,
+            String actorType,
             String actorId,
             String eventType,
             String entityType,

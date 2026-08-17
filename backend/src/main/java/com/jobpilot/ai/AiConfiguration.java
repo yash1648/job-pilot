@@ -7,6 +7,8 @@ import com.jobpilot.ai.provider.ollama.OllamaAiService;
 import com.jobpilot.ai.provider.ollama.OllamaClient;
 import com.jobpilot.ai.provider.ollama.OllamaEmbeddingService;
 import com.jobpilot.ai.provider.ollama.OllamaVisionService;
+import com.jobpilot.ai.provider.openai.OpenAiCompatibleAiService;
+import com.jobpilot.ai.provider.openai.OpenAiCompatibleVisionService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -60,6 +62,39 @@ public class AiConfiguration {
         @Bean
         OllamaVisionService visionService(ModelRouter router, OllamaClient client) {
             return new OllamaVisionService(router, client);
+        }
+    }
+
+    @Configuration
+    @ConditionalOnProperty(name = "jobpilot.ai.provider", havingValue = "openai")
+    static class OpenAiProviderConfig {
+        // embeddings stay on Ollama (nomic-embed-text); chat/vision go to the
+        // OpenAI-compatible gateway (doc 06 §1).
+        @Bean
+        OllamaClient ollamaClient(
+                @org.springframework.beans.factory.annotation.Value("${jobpilot.ai.ollama.base-url:http://localhost:11434}") String baseUrl) {
+            return new OllamaClient(baseUrl);
+        }
+
+        @Bean
+        OpenAiCompatibleAiService aiService(
+                @org.springframework.beans.factory.annotation.Value("${jobpilot.ai.openai.base-url:http://localhost:3001/v1}") String baseUrl,
+                @org.springframework.beans.factory.annotation.Value("${jobpilot.ai.openai.api-key:}") String apiKey,
+                @org.springframework.beans.factory.annotation.Value("${jobpilot.ai.openai.model:auto}") String model) {
+            return new OpenAiCompatibleAiService(baseUrl, apiKey, model);
+        }
+
+        @Bean
+        OllamaEmbeddingService embeddingService(ModelRouter router, OllamaClient ollamaClient) {
+            return new OllamaEmbeddingService(router, ollamaClient);
+        }
+
+        @Bean
+        OpenAiCompatibleVisionService visionService(
+                @org.springframework.beans.factory.annotation.Value("${jobpilot.ai.openai.base-url:http://localhost:3001/v1}") String baseUrl,
+                @org.springframework.beans.factory.annotation.Value("${jobpilot.ai.openai.api-key:}") String apiKey,
+                @org.springframework.beans.factory.annotation.Value("${jobpilot.ai.openai.model:auto}") String model) {
+            return new OpenAiCompatibleVisionService(baseUrl, apiKey, model);
         }
     }
 }

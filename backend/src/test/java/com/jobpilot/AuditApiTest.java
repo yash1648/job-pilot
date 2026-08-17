@@ -2,7 +2,6 @@ package com.jobpilot;
 
 import com.jobpilot.audit.api.AuditDtos.AuditEventRequest;
 import com.jobpilot.audit.api.AuditService;
-import com.jobpilot.audit.domain.ActorType;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -76,9 +75,9 @@ class AuditApiTest {
     @Test
     void userSeesOnlyOwnAuditTrail() throws Exception {
         Auth u1 = authed();
-        auditService.record(new AuditEventRequest(ActorType.USER, u1.userId, "LOGIN", "user", u1.userId,
+        auditService.record(new AuditEventRequest("USER", u1.userId, "LOGIN", "user", u1.userId,
                 Map.of("ip", "1.2.3.4")));
-        auditService.record(new AuditEventRequest(ActorType.USER, u1.userId, "PROFILE_UPDATE", "candidate_profile", "x",
+        auditService.record(new AuditEventRequest("USER", u1.userId, "PROFILE_UPDATE", "candidate_profile", "x",
                 Map.of("field", "headline")));
 
         // user1 sees exactly their 2 events

@@ -44,7 +44,7 @@ public class AuditServiceImpl implements AuditService {
     public void record(AuditEventRequest request) {
         rejectSecrets(request.payload());
         repository.save(new AuditEvent(
-                request.actorType(),
+                parseActorType(request.actorType()),
                 request.actorId(),
                 request.eventType(),
                 request.entityType(),
@@ -60,6 +60,14 @@ public class AuditServiceImpl implements AuditService {
                 .map(AuditEventResponse::from)
                 .toList();
         return new AuditTrailResponse(events);
+    }
+
+    private ActorType parseActorType(String raw) {
+        try {
+            return ActorType.valueOf(raw.toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException | NullPointerException e) {
+            throw new IllegalArgumentException("unknown actorType: " + raw, e);
+        }
     }
 
     private void rejectSecrets(Map<String, Object> payload) {

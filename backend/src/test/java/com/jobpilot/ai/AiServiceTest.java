@@ -30,7 +30,7 @@ class AiServiceTest {
         FakeEmbeddingService svc = new FakeEmbeddingService();
         float[] a = svc.embed("hello", EmbeddingKind.RESUME);
         float[] b = svc.embed("hello", EmbeddingKind.RESUME);
-        assertEquals(1536, a.length);
+        assertEquals(768, a.length);
         assertArrayEquals(a, b);
     }
 

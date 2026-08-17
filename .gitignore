@@ -24,3 +24,7 @@ jobpilot-storage/
 
 # CodeGraph index
 .codegraph
+
+# Agent working directories (not project source)
+.omo/
+.tmp/
