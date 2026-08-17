@@ -49,6 +49,17 @@ public class ResumeController {
         return ResponseEntity.ok(resumeService.get(userId(principal), id));
     }
 
+    /**
+     * Triggers parse of a previously uploaded resume: text extraction → AI
+     * evidence extraction → skill extraction → profile synthesis + embedding
+     * (doc 07 §2). Returns the resulting resume status (PARSED or FAILED).
+     * Scoped to the authenticated user.
+     */
+    @PostMapping("/{id}/parse")
+    public ResponseEntity<ResumeResponse> parse(@PathVariable UUID id, Principal principal) {
+        return ResponseEntity.ok(resumeService.parse(userId(principal), id));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> delete(@PathVariable UUID id, Principal principal) {
         resumeService.delete(userId(principal), id);
